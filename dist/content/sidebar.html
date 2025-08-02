@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI网页助手</title>
+  <style>
+    /* 侧边栏样式将通过content.js注入 */
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .sidebar-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .sidebar-header {
+      padding: 12px 16px;
+      border-bottom: 1px solid #e0e0e0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background-color: #4285F4;
+      color: white;
+    }
+    
+    .sidebar-header h3 {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 500;
+    }
+    
+    .sidebar-close-btn {
+      background: none;
+      border: none;
+      color: white;
+      font-size: 20px;
+      cursor: pointer;
+      padding: 0;
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+    }
+    
+    .sidebar-close-btn:hover {
+      background-color: rgba(255, 255, 255, 0.2);
+    }
+    
+    .sidebar-conversation {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+      background-color: #f8f9fa;
+    }
+    
+    .sidebar-input {
+      padding: 12px;
+      border-top: 1px solid #e0e0e0;
+      display: flex;
+      background-color: white;
+    }
+    
+    .sidebar-input textarea {
+      flex: 1;
+      border: 1px solid #e0e0e0;
+      border-radius: 18px;
+      padding: 8px 12px;
+      font-size: 14px;
+      resize: none;
+      font-family: inherit;
+      outline: none;
+    }
+    
+    .sidebar-input textarea:focus {
+      border-color: #4285F4;
+    }
+    
+    .send-btn {
+      background-color: #4285F4;
+      border: none;
+      color: white;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      margin-left: 8px;
+      align-self: flex-end;
+    }
+    
+    .send-btn:hover {
+      background-color: #3367d6;
+    }
+    
+    .send-btn svg {
+      width: 20px;
+      height: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="sidebar-container">
+    <div class="sidebar-header">
+      <h3>AI网页助手</h3>
+      <button class="sidebar-close-btn" id="close-btn" title="关闭侧边栏">×</button>
+    </div>
+    
+    <div class="sidebar-conversation" id="conversation-container">
+      <div class="welcome-message">
+        <p>👋 你好！我是AI网页助手。</p>
+        <p>我已经阅读了这个网页的内容，你可以问我任何关于这个网页的问题。</p>
+      </div>
+      <div id="messages-container"></div>
+    </div>
+    
+    <div class="sidebar-input">
+      <textarea id="input-text" placeholder="输入你的问题..." rows="2"></textarea>
+      <button class="send-btn" id="send-btn" title="发送">
+        <svg viewBox="0 0 24 24" width="24" height="24">
+          <path fill="currentColor" d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"></path>
+        </svg>
+      </button>
+    </div>
+  </div>
+  
+  <script>
+    // 侧边栏与内容脚本通信
+    document.getElementById('close-btn').addEventListener('click', () => {
+      window.parent.postMessage({ action: 'closeSidebar' }, '*');
+    });
+    
+    document.getElementById('send-btn').addEventListener('click', sendMessage);
+    document.getElementById('input-text').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+      }
+    });
+    
+    function sendMessage() {
+      const inputText = document.getElementById('input-text');
+      const message = inputText.value.trim();
+      
+      if (message) {
+        window.parent.postMessage({ action: 'sendMessage', message }, '*');
+        inputText.value = '';
+      }
+    }
+    
+    // 接收来自内容脚本的消息
+    window.addEventListener('message', (event) => {
+      const { action, data } = event.data;
+      
+      switch (action) {
+        case 'addMessage':
+          addMessage(data.text, data.isUser, data.isError);
+          break;
+        case 'showLoading':
+          showLoadingIndicator();
+          break;
+        case 'hideLoading':
+          hideLoadingIndicator();
+          break;
+      }
+    });
+    
+    function addMessage(text, isUser, isError = false) {
+      const messagesContainer = document.getElementById('messages-container');
+      
+      const messageEl = document.createElement('div');
+      messageEl.classList.add('message');
+      messageEl.classList.add(isUser ? 'user-message' : 'assistant-message');
+      if (isError) messageEl.classList.add('error-message');
+      
+      messageEl.innerHTML = `
+        <div class="message-content">
+          ${formatMessage(text)}
+        </div>
+        ${!isUser ? '<button class="copy-btn" title="复制回答">复制</button>' : ''}
+      `;
+      
+      messagesContainer.appendChild(messageEl);
+      
+      // 滚动到底部
+      const conversationContainer = document.getElementById('conversation-container');
+      conversationContainer.scrollTop = conversationContainer.scrollHeight;
+      
+      // 添加复制按钮事件
+      if (!isUser) {
+        const copyBtn = messageEl.querySelector('.copy-btn');
+        copyBtn.addEventListener('click', () => {
+          navigator.clipboard.writeText(text).then(() => {
+            copyBtn.textContent = '已复制';
+            setTimeout(() => {
+              copyBtn.textContent = '复制';
+            }, 2000);
+          });
+        });
+      }
+    }
+    
+    function formatMessage(text) {
+      // 简单的Markdown格式支持
+      return text
+        // 代码块
+        .replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>')
+        // 行内代码
+        .replace(/`([^`]+)`/g, '<code>$1</code>')
+        // 粗体
+        .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+        // 斜体
+        .replace(/\*([^*]+)\*/g, '<em>$1</em>')
+        // 链接
+        .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>')
+        // 换行
+        .replace(/\n/g, '<br>');
+    }
+    
+    function showLoadingIndicator() {
+      const messagesContainer = document.getElementById('messages-container');
+      
+      // 检查是否已存在加载指示器
+      let loadingEl = document.querySelector('.loading-indicator');
+      if (loadingEl) return;
+      
+      // 创建加载指示器
+      loadingEl = document.createElement('div');
+      loadingEl.classList.add('message', 'assistant-message', 'loading-indicator');
+      loadingEl.innerHTML = `
+        <div class="message-content">
+          <div class="typing-indicator">
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
+        </div>
+      `;
+      
+      messagesContainer.appendChild(loadingEl);
+      
+      // 滚动到底部
+      const conversationContainer = document.getElementById('conversation-container');
+      conversationContainer.scrollTop = conversationContainer.scrollHeight;
+    }
+    
+    function hideLoadingIndicator() {
+      const loadingEl = document.querySelector('.loading-indicator');
+      if (loadingEl) {
+        loadingEl.remove();
+      }
+    }
+  </script>
+</body>
+</html>
