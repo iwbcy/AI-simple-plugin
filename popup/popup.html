@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI网页助手</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="popup-container">
+    <div class="popup-header">
+      <h1>AI网页助手</h1>
+      <p class="version">版本 1.0.0</p>
+    </div>
+    
+    <div class="popup-content">
+      <div class="toggle-container">
+        <label class="toggle-label">启用侧边栏</label>
+        <label class="switch">
+          <input type="checkbox" id="sidebar-toggle" checked>
+          <span class="slider round"></span>
+        </label>
+      </div>
+      
+      <div class="status-container">
+        <div class="status-item">
+          <span class="status-label">API状态:</span>
+          <span class="status-value" id="api-status">检查中...</span>
+        </div>
+        <div class="status-item">
+          <span class="status-label">当前模型:</span>
+          <span class="status-value" id="current-model">-</span>
+        </div>
+      </div>
+      
+      <div class="button-container">
+        <button id="open-options" class="primary-button">设置</button>
+        <button id="clear-history" class="secondary-button">清除历史</button>
+      </div>
+      
+      <div class="history-preview">
+        <h3>最近对话</h3>
+        <div id="history-list">
+          <div class="empty-history">暂无对话历史</div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="popup-footer">
+      <button id="help-button" class="text-button">帮助</button>
+      <button id="feedback-button" class="text-button">反馈</button>
+    </div>
+  </div>
+  
+  <script src="popup.js"></script>
+</body>
+</html>
